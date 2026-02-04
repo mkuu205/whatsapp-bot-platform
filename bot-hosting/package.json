@@ -1,0 +1,26 @@
+{
+  "name": "whatsapp-bot-hosting",
+  "version": "1.0.0",
+  "description": "Multi-session WhatsApp bot hosting with pairing codes",
+  "main": "src/bot-manager.js",
+  "scripts": {
+    "start": "node src/bot-manager.js",
+    "dev": "nodemon src/bot-manager.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.5.0",
+    "qrcode-terminal": "^0.12.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "pg": "^8.11.3",
+    "crypto-js": "^4.1.1",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "moment": "^2.29.4",
+    "chalk": "^4.1.2",
+    "libphonenumber-js": "^1.10.46"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
