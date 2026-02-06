@@ -1,13 +1,14 @@
 // web-platform/frontend/src/pages/LoginPage.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import './LoginPage.css';
+import { useAuth } from '../contexts/AuthContext';
 
-function LoginPage({ setUser }) {
+function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -16,21 +17,13 @@ function LoginPage({ setUser }) {
     setLoading(true);
 
     try {
-      // Mock login for now - replace with actual API
-      const mockUser = {
-        id: '123',
-        email: email,
-        role: 'admin',
-        name: email.split('@')[0]
-      };
+      const result = await login(email, password);
       
-      localStorage.setItem('token', 'mock-jwt-token');
-      setUser(mockUser);
-      
-      setTimeout(() => {
+      if (result.success) {
         navigate('/dashboard');
-      }, 1000);
-      
+      } else {
+        setError(result.error);
+      }
     } catch (err) {
       setError('Login failed. Please try again.');
     } finally {
@@ -39,76 +32,158 @@ function LoginPage({ setUser }) {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
+    <div style={styles.container}>
+      <div style={styles.card}>
+        <div style={styles.header}>
           <h2>Welcome Back</h2>
           <p>Sign in to your WhatsApp Bot Platform account</p>
         </div>
 
         {error && (
-          <div className="error-alert">
-            <span>⚠️</span> {error}
+          <div style={styles.error}>
+            ⚠️ {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label htmlFor="email">Email Address</label>
+        <form onSubmit={handleSubmit} style={styles.form}>
+          <div style={styles.formGroup}>
+            <label htmlFor="email" style={styles.label}>Email Address</label>
             <input
               type="email"
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
+              style={styles.input}
               required
               disabled={loading}
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
+          <div style={styles.formGroup}>
+            <label htmlFor="password" style={styles.label}>Password</label>
             <input
               type="password"
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
+              style={styles.input}
               required
               disabled={loading}
             />
-            <Link to="/forgot-password" className="forgot-link">
+            <Link to="/forgot-password" style={styles.forgotLink}>
               Forgot password?
             </Link>
           </div>
 
-          <button type="submit" className="login-button" disabled={loading}>
-            {loading ? (
-              <>
-                <span className="spinner"></span>
-                Signing in...
-              </>
-            ) : (
-              'Sign In'
-            )}
+          <button type="submit" style={styles.button} disabled={loading}>
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
-
-          <div className="divider">
-            <span>OR</span>
-          </div>
-
-          <Link to="/register" className="register-link">
-            Create new account
-          </Link>
         </form>
 
-        <div className="login-footer">
-          <p>Demo Credentials:</p>
-          <p className="demo-creds">Email: admin@example.com | Password: any</p>
+        <div style={styles.divider}>
+          <span>OR</span>
         </div>
+
+        <Link to="/register" style={styles.registerLink}>
+          Create new account
+        </Link>
       </div>
     </div>
   );
 }
+
+const styles = {
+  container: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '80vh',
+    padding: '20px',
+  },
+  card: {
+    background: 'white',
+    borderRadius: '20px',
+    padding: '40px',
+    width: '100%',
+    maxWidth: '450px',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
+  },
+  header: {
+    textAlign: 'center',
+    marginBottom: '30px',
+  },
+  error: {
+    background: '#fee2e2',
+    color: '#dc2626',
+    padding: '15px',
+    borderRadius: '10px',
+    marginBottom: '20px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+  },
+  formGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  label: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#374151',
+  },
+  input: {
+    padding: '14px',
+    border: '1px solid #d1d5db',
+    borderRadius: '10px',
+    fontSize: '16px',
+  },
+  forgotLink: {
+    alignSelf: 'flex-end',
+    fontSize: '14px',
+    color: '#6366f1',
+    textDecoration: 'none',
+    marginTop: '5px',
+  },
+  button: {
+    padding: '16px',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '10px',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    marginTop: '10px',
+  },
+  divider: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '15px',
+    margin: '20px 0',
+    color: '#9ca3af',
+  },
+  dividerLine: {
+    flex: 1,
+    height: '1px',
+    background: '#e5e7eb',
+  },
+  registerLink: {
+    padding: '14px',
+    textAlign: 'center',
+    color: '#6366f1',
+    textDecoration: 'none',
+    border: '2px solid #6366f1',
+    borderRadius: '10px',
+    fontWeight: '600',
+  },
+};
 
 export default LoginPage;
