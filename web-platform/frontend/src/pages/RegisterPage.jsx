@@ -1,10 +1,10 @@
 // web-platform/frontend/src/pages/RegisterPage.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
-function RegisterPage({ setUser }) {
+function RegisterPage() {
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
     password: '',
     phone: '',
@@ -12,6 +12,7 @@ function RegisterPage({ setUser }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -25,25 +26,22 @@ function RegisterPage({ setUser }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    if (!formData.agreeTerms) {
+      setError('You must agree to the terms and conditions');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Mock registration for now
-      const mockUser = {
-        id: '456',
-        email: formData.email,
-        name: formData.name,
-        phone: formData.phone,
-        role: 'user'
-      };
+      const result = await register(formData);
       
-      localStorage.setItem('token', 'mock-jwt-token');
-      setUser(mockUser);
-      
-      setTimeout(() => {
+      if (result.success) {
         navigate('/payment');
-      }, 1000);
-      
+      } else {
+        setError(result.error);
+      }
     } catch (err) {
       setError('Registration failed. Please try again.');
     } finally {
@@ -55,8 +53,8 @@ function RegisterPage({ setUser }) {
     <div style={styles.container}>
       <div style={styles.card}>
         <div style={styles.header}>
-          <h2 style={styles.title}>Create Account</h2>
-          <p style={styles.subtitle}>Start your WhatsApp automation journey</p>
+          <h2>Create Account</h2>
+          <p>Start your WhatsApp automation journey</p>
         </div>
 
         {error && (
@@ -66,20 +64,6 @@ function RegisterPage({ setUser }) {
         )}
 
         <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Full Name</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="John Doe"
-              style={styles.input}
-              required
-              disabled={loading}
-            />
-          </div>
-
           <div style={styles.formGroup}>
             <label style={styles.label}>Email Address</label>
             <input
@@ -106,6 +90,7 @@ function RegisterPage({ setUser }) {
               required
               disabled={loading}
             />
+            <small style={styles.help}>Include country code for WhatsApp linking</small>
           </div>
 
           <div style={styles.formGroup}>
@@ -119,6 +104,7 @@ function RegisterPage({ setUser }) {
               style={styles.input}
               required
               disabled={loading}
+              minLength="6"
             />
           </div>
 
@@ -130,14 +116,17 @@ function RegisterPage({ setUser }) {
               onChange={handleChange}
               id="terms"
               style={styles.checkbox}
-              required
             />
             <label htmlFor="terms" style={styles.checkboxLabel}>
-              I agree to the Terms of Service and Privacy Policy
+              I agree to the <Link to="/terms" style={styles.link}>Terms of Service</Link> and <Link to="/privacy" style={styles.link}>Privacy Policy</Link>
             </label>
           </div>
 
-          <button type="submit" style={styles.button} disabled={loading || !formData.agreeTerms}>
+          <button 
+            type="submit" 
+            style={styles.button} 
+            disabled={loading || !formData.agreeTerms}
+          >
             {loading ? 'Creating Account...' : 'Create Account'}
           </button>
 
@@ -155,8 +144,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: '100vh',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    minHeight: '80vh',
     padding: '20px',
   },
   card: {
@@ -165,31 +153,18 @@ const styles = {
     padding: '40px',
     width: '100%',
     maxWidth: '500px',
-    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.1)',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
   },
   header: {
     textAlign: 'center',
     marginBottom: '30px',
   },
-  title: {
-    fontSize: '32px',
-    fontWeight: '700',
-    color: '#1f2937',
-    marginBottom: '10px',
-  },
-  subtitle: {
-    fontSize: '16px',
-    color: '#6b7280',
-  },
   error: {
     background: '#fee2e2',
     color: '#dc2626',
-    padding: '12px',
-    borderRadius: '8px',
+    padding: '15px',
+    borderRadius: '10px',
     marginBottom: '20px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
   },
   form: {
     display: 'flex',
@@ -211,25 +186,28 @@ const styles = {
     border: '1px solid #d1d5db',
     borderRadius: '10px',
     fontSize: '16px',
-    transition: 'all 0.3s ease',
   },
-  inputFocus: {
-    borderColor: '#6366f1',
-    boxShadow: '0 0 0 3px rgba(99, 102, 241, 0.1)',
+  help: {
+    color: '#6b7280',
+    fontSize: '12px',
   },
   checkboxGroup: {
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: '10px',
     margin: '10px 0',
   },
   checkbox: {
-    width: '18px',
-    height: '18px',
+    marginTop: '3px',
   },
   checkboxLabel: {
     fontSize: '14px',
     color: '#6b7280',
+    lineHeight: '1.4',
+  },
+  link: {
+    color: '#6366f1',
+    textDecoration: 'none',
   },
   button: {
     padding: '16px',
@@ -240,12 +218,7 @@ const styles = {
     fontSize: '16px',
     fontWeight: '600',
     cursor: 'pointer',
-    transition: 'all 0.3s ease',
     marginTop: '10px',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-    cursor: 'not-allowed',
   },
   loginText: {
     textAlign: 'center',
