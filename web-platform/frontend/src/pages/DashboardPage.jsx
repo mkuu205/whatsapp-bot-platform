@@ -1,166 +1,529 @@
 // web-platform/frontend/src/pages/DashboardPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import './DashboardPage.css';
+import axios from 'axios';
+import { useAuth } from '../contexts/AuthContext';
 
-function DashboardPage({ user }) {
+function DashboardPage() {
   const [stats, setStats] = useState({
     totalBots: 0,
     activeBots: 0,
-    messagesToday: 0,
-    subscriptionDays: 30
+    subscriptionDays: 0,
+    subscriptionStatus: 'inactive'
   });
-
   const [recentBots, setRecentBots] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [subscription, setSubscription] = useState(null);
+  const { user } = useAuth();
 
   useEffect(() => {
-    // Mock data for now
-    setTimeout(() => {
-      setStats({
-        totalBots: 3,
-        activeBots: 2,
-        messagesToday: 156,
-        subscriptionDays: 27
-      });
-      setRecentBots([
-        { id: 1, name: 'Support Bot', status: 'online', lastActive: '2 mins ago' },
-        { id: 2, name: 'Marketing Bot', status: 'offline', lastActive: '1 hour ago' },
-        { id: 3, name: 'Sales Bot', status: 'online', lastActive: 'Just now' },
-      ]);
-      setLoading(false);
-    }, 1000);
+    fetchDashboardData();
   }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      // Fetch user subscription
+      const subscriptionRes = await axios.get('/subscription/status');
+      setSubscription(subscriptionRes.data);
+
+      // Fetch user bots
+      const botsRes = await axios.get('/bots');
+      const bots = botsRes.data || [];
+      
+      // Calculate stats
+      const activeBots = bots.filter(b => b.session_status === 'online').length;
+      const daysLeft = subscriptionRes.data.has_subscription 
+        ? subscriptionRes.data.subscription.days_remaining 
+        : 0;
+
+      setStats({
+        totalBots: bots.length,
+        activeBots,
+        subscriptionDays: daysLeft,
+        subscriptionStatus: subscriptionRes.data.has_subscription ? 'active' : 'inactive'
+      });
+
+      // Get recent bots (last 3)
+      setRecentBots(bots.slice(0, 3));
+    } catch (error) {
+      console.error('Dashboard data error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'online': return '#10b981';
+      case 'pairing': return '#f59e0b';
+      case 'creds_uploaded': return '#3b82f6';
+      default: return '#6b7280';
+    }
+  };
+
+  const getNextAction = (bot) => {
+    if (!bot.session_status || bot.session_status === 'created') {
+      return { label: 'Setup', path: `/pairing?botId=${bot.id}` };
+    }
+    if (bot.session_status === 'pairing') {
+      return { label: 'Pair', path: `/pairing?botId=${bot.id}` };
+    }
+    if (bot.session_status === 'creds_uploaded') {
+      return { label: 'Deploy', path: `/bots/${bot.id}/upload-creds` };
+    }
+    return { label: 'Manage', path: `/bots/${bot.id}` };
+  };
 
   if (loading) {
     return (
-      <div className="dashboard-loading">
-        <div className="loading-spinner"></div>
+      <div style={styles.loading}>
+        <div style={styles.spinner}></div>
         <p>Loading dashboard...</p>
       </div>
     );
   }
 
   return (
-    <div className="dashboard-container">
+    <div style={styles.container}>
       {/* Welcome Section */}
-      <div className="welcome-section">
-        <div className="welcome-content">
-          <h1>Welcome back, {user?.name || 'User'}! 👋</h1>
-          <p>Here's what's happening with your WhatsApp bots today.</p>
+      <div style={styles.welcomeSection}>
+        <div style={styles.welcomeContent}>
+          <h1 style={styles.welcomeTitle}>
+            Welcome back, {user?.email?.split('@')[0] || 'User'}! 👋
+          </h1>
+          <p style={styles.welcomeSubtitle}>
+            {subscription?.has_subscription 
+              ? `Your subscription has ${stats.subscriptionDays} days remaining`
+              : 'Get started by subscribing to create bots'}
+          </p>
         </div>
-        <div className="welcome-actions">
-          <Link to="/bots/create" className="btn-primary">
-            + Deploy New Bot
+        <div style={styles.welcomeActions}>
+          <Link to="/bots/create" style={styles.primaryButton}>
+            + Create New Bot
           </Link>
-          <Link to="/payment" className="btn-secondary">
-            Upgrade Plan
-          </Link>
+          {!subscription?.has_subscription && (
+            <Link to="/payment" style={styles.secondaryButton}>
+              💳 Subscribe Now
+            </Link>
+          )}
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon">🤖</div>
-          <div className="stat-content">
-            <div className="stat-value">{stats.totalBots}</div>
-            <div className="stat-label">Total Bots</div>
+      <div style={styles.statsGrid}>
+        <div style={styles.statCard}>
+          <div style={styles.statIcon}>🤖</div>
+          <div style={styles.statContent}>
+            <div style={styles.statValue}>{stats.totalBots}</div>
+            <div style={styles.statLabel}>Total Bots</div>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon">🟢</div>
-          <div className="stat-content">
-            <div className="stat-value">{stats.activeBots}</div>
-            <div className="stat-label">Active Now</div>
+        <div style={styles.statCard}>
+          <div style={styles.statIcon}>🟢</div>
+          <div style={styles.statContent}>
+            <div style={styles.statValue}>{stats.activeBots}</div>
+            <div style={styles.statLabel}>Active Now</div>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon">💬</div>
-          <div className="stat-content">
-            <div className="stat-value">{stats.messagesToday}</div>
-            <div className="stat-label">Messages Today</div>
+        <div style={styles.statCard}>
+          <div style={styles.statIcon}>⏰</div>
+          <div style={styles.statContent}>
+            <div style={styles.statValue}>{stats.subscriptionDays}</div>
+            <div style={styles.statLabel}>Days Left</div>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon">⏰</div>
-          <div className="stat-content">
-            <div className="stat-value">{stats.subscriptionDays}</div>
-            <div className="stat-label">Days Left</div>
+        <div style={styles.statCard}>
+          <div style={styles.statIcon}>🔧</div>
+          <div style={styles.statContent}>
+            <div style={styles.statValue}>
+              {subscription?.has_subscription ? 'Active' : 'Inactive'}
+            </div>
+            <div style={styles.statLabel}>Subscription</div>
           </div>
         </div>
       </div>
 
-      {/* Recent Bots */}
-      <div className="recent-bots">
-        <div className="section-header">
+      {/* Recent Bots Section */}
+      <div style={styles.section}>
+        <div style={styles.sectionHeader}>
           <h2>Your WhatsApp Bots</h2>
-          <Link to="/bots" className="view-all">View All →</Link>
+          <Link to="/bots" style={styles.viewAllLink}>
+            View All →
+          </Link>
         </div>
         
-        <div className="bots-grid">
-          {recentBots.map(bot => (
-            <div key={bot.id} className="bot-card">
-              <div className="bot-header">
-                <div className="bot-name">{bot.name}</div>
-                <div className={`bot-status ${bot.status}`}>
-                  <span className="status-dot"></span>
-                  {bot.status}
+        {recentBots.length === 0 ? (
+          <div style={styles.emptyState}>
+            <div style={styles.emptyIcon}>🤖</div>
+            <h3>No Bots Yet</h3>
+            <p>Create your first WhatsApp bot to get started</p>
+            <Link to="/bots/create" style={styles.createButton}>
+              Create Your First Bot
+            </Link>
+          </div>
+        ) : (
+          <div style={styles.botsGrid}>
+            {recentBots.map((bot) => {
+              const nextAction = getNextAction(bot);
+              const statusColor = getStatusColor(bot.session_status);
+              
+              return (
+                <div key={bot.id} style={styles.botCard}>
+                  <div style={styles.botHeader}>
+                    <div style={styles.botName}>
+                      <span style={styles.botIcon}>🤖</span>
+                      {bot.name}
+                    </div>
+                    <div style={{
+                      ...styles.status,
+                      background: `${statusColor}20`,
+                      color: statusColor,
+                      border: `1px solid ${statusColor}40`
+                    }}>
+                      {bot.session_status || 'inactive'}
+                    </div>
+                  </div>
+                  
+                  <div style={styles.botInfo}>
+                    <div style={styles.infoRow}>
+                      <span style={styles.infoLabel}>WhatsApp:</span>
+                      <span style={styles.infoValue}>
+                        {bot.whatsapp_number || 'Not linked'}
+                      </span>
+                    </div>
+                    <div style={styles.infoRow}>
+                      <span style={styles.infoLabel}>Created:</span>
+                      <span style={styles.infoValue}>
+                        {new Date(bot.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div style={styles.botActions}>
+                    <Link to={nextAction.path} style={styles.actionButton}>
+                      {nextAction.label}
+                    </Link>
+                    <Link to={`/bots/${bot.id}`} style={styles.secondaryAction}>
+                      Manage
+                    </Link>
+                  </div>
                 </div>
-              </div>
-              <div className="bot-info">
-                <div className="info-item">
-                  <span className="info-label">Last Active:</span>
-                  <span className="info-value">{bot.lastActive}</span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label">Messages:</span>
-                  <span className="info-value">1,234</span>
-                </div>
-              </div>
-              <div className="bot-actions">
-                <Link to={`/bots/${bot.id}`} className="action-btn">Manage</Link>
-                <Link to={`/pairing?bot=${bot.id}`} className="action-btn primary">Pair</Link>
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Quick Actions */}
-      <div className="quick-actions">
+      {/* Quick Actions - FIXED: Show only ONE action when no bots (Issue #6) */}
+      <div style={styles.section}>
         <h2>Quick Actions</h2>
-        <div className="actions-grid">
-          <Link to="/pairing" className="action-card">
-            <div className="action-icon">🔗</div>
-            <div className="action-title">Link WhatsApp</div>
-            <div className="action-desc">Pair new device</div>
-          </Link>
-          
-          <Link to="/bots/create" className="action-card">
-            <div className="action-icon">🤖</div>
-            <div className="action-title">Create Bot</div>
-            <div className="action-desc">Deploy new bot</div>
-          </Link>
-          
-          <Link to="/settings" className="action-card">
-            <div className="action-icon">⚙️</div>
-            <div className="action-title">Settings</div>
-            <div className="action-desc">Configure platform</div>
-          </Link>
-          
-          <Link to="/payment" className="action-card">
-            <div className="action-icon">💳</div>
-            <div className="action-title">Upgrade</div>
-            <div className="action-desc">Get more features</div>
-          </Link>
+        <div style={styles.quickActions}>
+          {stats.totalBots === 0 ? (
+            // Only show Create Bot when no bots exist (Issue #6)
+            <Link to="/bots/create" style={styles.quickAction}>
+              <div style={styles.quickActionIcon}>🤖</div>
+              <div>
+                <div style={styles.quickActionTitle}>Create Bot</div>
+                <div style={styles.quickActionDesc}>Deploy your first WhatsApp bot</div>
+              </div>
+            </Link>
+          ) : (
+            // Show multiple actions when bots exist
+            <>
+              <Link to="/bots/create" style={styles.quickAction}>
+                <div style={styles.quickActionIcon}>🤖</div>
+                <div>
+                  <div style={styles.quickActionTitle}>Create Bot</div>
+                  <div style={styles.quickActionDesc}>Deploy new WhatsApp bot</div>
+                </div>
+              </Link>
+              
+              <Link to="/pairing" style={styles.quickAction}>
+                <div style={styles.quickActionIcon}>🔗</div>
+                <div>
+                  <div style={styles.quickActionTitle}>Pair Device</div>
+                  <div style={styles.quickActionDesc}>Link new WhatsApp number</div>
+                </div>
+              </Link>
+              
+              {!subscription?.has_subscription && (
+                <Link to="/payment" style={styles.quickAction}>
+                  <div style={styles.quickActionIcon}>💳</div>
+                  <div>
+                    <div style={styles.quickActionTitle}>Upgrade</div>
+                    <div style={styles.quickActionDesc}>Get more features</div>
+                  </div>
+                </Link>
+              )}
+              
+              <Link to="/settings" style={styles.quickAction}>
+                <div style={styles.quickActionIcon}>⚙️</div>
+                <div>
+                  <div style={styles.quickActionTitle}>Settings</div>
+                  <div style={styles.quickActionDesc}>Configure platform</div>
+                </div>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
+const styles = {
+  container: {
+    maxWidth: '1400px',
+    margin: '0 auto',
+    padding: '20px',
+  },
+  loading: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '50vh',
+  },
+  spinner: {
+    width: '40px',
+    height: '40px',
+    border: '4px solid #e5e7eb',
+    borderTop: '4px solid #6366f1',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+    marginBottom: '20px',
+  },
+  welcomeSection: {
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    borderRadius: '20px',
+    padding: '40px',
+    marginBottom: '30px',
+    color: 'white',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '20px',
+  },
+  welcomeContent: {
+    flex: 1,
+  },
+  welcomeTitle: {
+    fontSize: '36px',
+    marginBottom: '10px',
+  },
+  welcomeSubtitle: {
+    opacity: 0.9,
+    fontSize: '18px',
+  },
+  welcomeActions: {
+    display: 'flex',
+    gap: '15px',
+  },
+  primaryButton: {
+    padding: '14px 28px',
+    background: 'white',
+    color: '#6366f1',
+    textDecoration: 'none',
+    borderRadius: '50px',
+    fontWeight: '600',
+    fontSize: '16px',
+  },
+  secondaryButton: {
+    padding: '14px 28px',
+    background: 'rgba(255,255,255,0.2)',
+    color: 'white',
+    textDecoration: 'none',
+    borderRadius: '50px',
+    fontWeight: '600',
+    fontSize: '16px',
+    border: '2px solid white',
+  },
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+    gap: '20px',
+    marginBottom: '40px',
+  },
+  statCard: {
+    background: 'white',
+    borderRadius: '15px',
+    padding: '25px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '20px',
+    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+  },
+  statIcon: {
+    fontSize: '40px',
+    width: '70px',
+    height: '70px',
+    background: 'linear-gradient(135deg, #667eea15 0%, #764ba215 100%)',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statContent: {
+    flex: 1,
+  },
+  statValue: {
+    fontSize: '32px',
+    fontWeight: '700',
+    marginBottom: '5px',
+  },
+  statLabel: {
+    color: '#6b7280',
+    fontSize: '14px',
+  },
+  section: {
+    marginBottom: '40px',
+  },
+  sectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '25px',
+  },
+  viewAllLink: {
+    color: '#6366f1',
+    textDecoration: 'none',
+    fontWeight: '600',
+  },
+  emptyState: {
+    background: '#f8fafc',
+    borderRadius: '15px',
+    padding: '40px',
+    textAlign: 'center',
+  },
+  emptyIcon: {
+    fontSize: '60px',
+    marginBottom: '20px',
+  },
+  createButton: {
+    display: 'inline-block',
+    marginTop: '20px',
+    padding: '12px 24px',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    color: 'white',
+    textDecoration: 'none',
+    borderRadius: '8px',
+    fontWeight: '600',
+  },
+  botsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+    gap: '20px',
+  },
+  botCard: {
+    background: 'white',
+    borderRadius: '15px',
+    padding: '25px',
+    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+    border: '1px solid #e5e7eb',
+  },
+  botHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px',
+  },
+  botName: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    fontSize: '18px',
+    fontWeight: '600',
+  },
+  botIcon: {
+    fontSize: '24px',
+  },
+  status: {
+    padding: '5px 15px',
+    borderRadius: '20px',
+    fontSize: '12px',
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  botInfo: {
+    marginBottom: '25px',
+  },
+  infoRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    padding: '8px 0',
+    borderBottom: '1px solid #e5e7eb',
+  },
+  infoLabel: {
+    color: '#6b7280',
+    fontSize: '14px',
+  },
+  infoValue: {
+    fontWeight: '600',
+    fontSize: '14px',
+  },
+  botActions: {
+    display: 'flex',
+    gap: '10px',
+  },
+  actionButton: {
+    flex: 1,
+    padding: '10px',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    color: 'white',
+    textDecoration: 'none',
+    textAlign: 'center',
+    borderRadius: '8px',
+    fontWeight: '600',
+    fontSize: '14px',
+  },
+  secondaryAction: {
+    flex: 1,
+    padding: '10px',
+    background: '#f3f4f6',
+    color: '#374151',
+    textDecoration: 'none',
+    textAlign: 'center',
+    borderRadius: '8px',
+    fontWeight: '600',
+    fontSize: '14px',
+  },
+  quickActions: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+    gap: '20px',
+  },
+  quickAction: {
+    background: 'white',
+    borderRadius: '15px',
+    padding: '25px',
+    textDecoration: 'none',
+    color: 'inherit',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '15px',
+    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+    border: '1px solid transparent',
+    transition: 'all 0.3s ease',
+  },
+  quickActionHover: {
+    borderColor: '#6366f1',
+    transform: 'translateY(-5px)',
+  },
+  quickActionIcon: {
+    fontSize: '32px',
+  },
+  quickActionTitle: {
+    fontWeight: '600',
+    marginBottom: '5px',
+  },
+  quickActionDesc: {
+    fontSize: '14px',
+    color: '#6b7280',
+  },
+};
 
 export default DashboardPage;
