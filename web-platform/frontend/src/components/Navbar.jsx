@@ -1,19 +1,19 @@
 // web-platform/frontend/src/components/Navbar.jsx
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import './Navbar.css';
 
-function Navbar({ user, darkMode, toggleDarkMode }) {
-  const navigate = useNavigate();
+function Navbar({ darkMode, toggleDarkMode }) {
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/');
-    window.location.reload();
+    logout();
+    window.location.href = '/';
   };
 
   return (
-    <nav className="navbar">
+    <nav className={`navbar ${darkMode ? 'dark' : ''}`}>
       <div className="navbar-container">
         {/* Logo */}
         <Link to="/" className="navbar-brand">
@@ -27,9 +27,8 @@ function Navbar({ user, darkMode, toggleDarkMode }) {
         {/* Navigation Links */}
         <div className="navbar-links">
           <Link to="/" className="nav-link">Home</Link>
-          <Link to="/features" className="nav-link">Features</Link>
-          <Link to="/pricing" className="nav-link">Pricing</Link>
           {user && <Link to="/dashboard" className="nav-link">Dashboard</Link>}
+          {user && <Link to="/bots" className="nav-link">My Bots</Link>}
           {user?.role === 'admin' && <Link to="/admin" className="nav-link admin-link">Admin</Link>}
         </div>
 
