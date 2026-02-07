@@ -1,7 +1,6 @@
 // web-platform/frontend/src/contexts/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext();
 
@@ -16,7 +15,6 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
     checkAuth();
@@ -35,7 +33,7 @@ export const AuthProvider = ({ children }) => {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       // Fetch REAL user from backend
-      const response = await axios.get('/auth/me');
+      const response = await axios.get('/api/auth/me');
       
       if (response.data) {
         setUser(response.data);
@@ -55,8 +53,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      // Login via Supabase directly or your backend
-      const response = await axios.post('/auth/login', {
+      const response = await axios.post('/api/auth/login', {
         email,
         password
       });
@@ -81,7 +78,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await axios.post('/auth/register', userData);
+      const response = await axios.post('/api/auth/register', userData);
       
       const { token, user: newUser } = response.data;
       
@@ -105,7 +102,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('access_token');
     delete axios.defaults.headers.common['Authorization'];
     setUser(null);
-    navigate('/');
+    // Don't use navigate here - let the component handle it
   };
 
   const updateUser = (updates) => {
