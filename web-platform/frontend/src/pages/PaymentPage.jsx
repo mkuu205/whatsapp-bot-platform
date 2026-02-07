@@ -51,7 +51,7 @@ function PaymentPage() {
 
   const fetchPaymentHistory = async () => {
     try {
-      const response = await axios.get('/payments/history');
+      const response = await axios.get('/api/payments/history');
       setPaymentHistory(response.data);
     } catch (error) {
       console.error('Failed to fetch payment history:', error);
@@ -89,10 +89,10 @@ function PaymentPage() {
       
       // Update user's phone number if not set
       if (!user.phone) {
-        await axios.put('/user/update-phone', { phone: phoneNumber });
+        await axios.put('/api/user/update-phone', { phone: phoneNumber });
       }
       
-      const response = await axios.post('/payments/initiate', {
+      const response = await axios.post('/api/payments/initiate', {
         plan: plan.id,
         planName: plan.name,
         amount: plan.price,
@@ -128,7 +128,7 @@ function PaymentPage() {
 
   const downloadReceipt = async (paymentId) => {
     try {
-      const response = await axios.get(`/payments/${paymentId}/receipt`, {
+      const response = await axios.get(`/api/payments/${paymentId}/receipt`, {
         responseType: 'blob'
       });
       
