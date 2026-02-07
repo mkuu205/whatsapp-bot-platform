@@ -1,6 +1,6 @@
-// web-platform/frontend/src/contexts/AuthContext.jsx
+// web-platform/frontend/src/contexts/AuthContext.jsx - UPDATED
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import api from '../api/axios'; // Import our custom axios instance
+import axios from '../api/axios'; // Import configured axios
 
 const AuthContext = createContext();
 
@@ -29,22 +29,21 @@ export const AuthProvider = ({ children }) => {
         return;
       }
       
-      // Fetch REAL user from backend
-      const response = await api.get('/api/auth/me');
+      // Fetch user from backend - FIXED PATH
+      const response = await axios.get('/api/auth/me');
       
       if (response.data) {
         setUser(response.data);
+        // Also store user in localStorage for quick access
+        localStorage.setItem('user', JSON.stringify(response.data));
       } else {
-        // Clear invalid token
         localStorage.removeItem('access_token');
+        localStorage.removeItem('user');
       }
     } catch (error) {
       console.error('Auth check failed:', error);
-      
-      // If it's a 401 error, clear the token
-      if (error.response?.status === 401) {
-        localStorage.removeItem('access_token');
-      }
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
     } finally {
       setLoading(false);
     }
@@ -54,7 +53,8 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('Login attempt for:', email);
       
-      const response = await api.post('/auth/login', {
+      // FIXED PATH: /api/auth/login instead of /auth/login
+      const response = await axios.post('/api/auth/login', {
         email,
         password
       });
@@ -67,15 +67,16 @@ export const AuthProvider = ({ children }) => {
         throw new Error('No token received from server');
       }
       
-      // Store token
+      // Store token and user
       localStorage.setItem('access_token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
       
-      // Set user
+      // Set user in state
       setUser(userData);
       
       return { success: true, user: userData };
     } catch (error) {
-      console.error('Login error details:', error.response?.data || error.message);
+      console.error('Login error:', error.response?.data || error.message);
       
       return { 
         success: false, 
@@ -86,7 +87,8 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await api.post('/api/auth/register', userData);
+      // FIXED PATH: /api/auth/register
+      const response = await axios.post('/api/auth/register', userData);
       
       const { token, user: newUser } = response.data;
       
@@ -94,10 +96,11 @@ export const AuthProvider = ({ children }) => {
         throw new Error('No token received from server');
       }
       
-      // Store token
+      // Store token and user
       localStorage.setItem('access_token', token);
+      localStorage.setItem('user', JSON.stringify(newUser));
       
-      // Set user
+      // Set user in state
       setUser(newUser);
       
       return { success: true, user: newUser };
@@ -113,13 +116,16 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
     setUser(null);
-    // Redirect to login page
-    window.location.href = '/login';
+    // Redirect to home page
+    window.location.href = '/';
   };
 
   const updateUser = (updates) => {
-    setUser(prev => ({ ...prev, ...updates }));
+    const updatedUser = { ...user, ...updates };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
   const value = {
