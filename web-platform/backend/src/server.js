@@ -25,7 +25,7 @@ if (!fs.existsSync(tempDir)) {
 // Security middleware
 app.use(helmet());
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL || 'https://whatsapp-bot-platform-q8tv.onrender.com',
     credentials: true
 }));
 app.use(express.json());
@@ -1710,3 +1710,4 @@ app.listen(PORT, () => {
     console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
     console.log(`🤖 Bot Runner URL: ${BOT_API_URL}`);
 });
+
