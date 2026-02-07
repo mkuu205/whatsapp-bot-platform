@@ -15,7 +15,7 @@ import PairingPage from './pages/PairingPage';
 import UploadCredsPage from './pages/UploadCredsPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminPage from './pages/AdminPage';
-import './App.css';
+// Remove this line: import './App.css';
 
 // Private Route Component
 const PrivateRoute = ({ children }) => {
