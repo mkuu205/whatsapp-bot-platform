@@ -1,6 +1,6 @@
 // web-platform/frontend/src/App.jsx
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -67,12 +67,18 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   return children;
 };
 
-// Main App Component
+// Main App Content Component (inside Router)
 function AppContent() {
   const { user, loading, logout } = useAuth();
+  const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem('darkMode') === 'true';
   });
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   const toggleDarkMode = () => {
     const newMode = !darkMode;
@@ -91,77 +97,75 @@ function AppContent() {
 
   return (
     <div className="app" style={darkMode ? styles.darkTheme : styles.lightTheme}>
-      <Router>
-        <Navbar user={user} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-        <main style={styles.mainContent}>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/dashboard" />} />
-            <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/dashboard" />} />
-            
-            {/* Protected Routes */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/bots" element={
-              <ProtectedRoute>
-                <BotsPage />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/bots/create" element={
-              <ProtectedRoute>
-                <BotsCreatePage />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/bots/:id" element={
-              <ProtectedRoute>
-                <BotDetailsPage />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/pairing" element={
-              <ProtectedRoute>
-                <PairingPage />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/bots/:id/upload-creds" element={
-              <ProtectedRoute>
-                <UploadCredsPage />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/payment" element={
-              <ProtectedRoute>
-                <PaymentPage />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/settings" element={
-              <ProtectedRoute>
-                <SettingsPage logout={logout} />
-              </ProtectedRoute>
-            } />
-            
-            {/* Admin Only Routes */}
-            <Route path="/admin" element={
-              <ProtectedRoute adminOnly>
-                <AdminPage />
-              </ProtectedRoute>
-            } />
-            
-            {/* 404 */}
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </main>
-        <Footer />
-      </Router>
+      <Navbar user={user} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      <main style={styles.mainContent}>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/dashboard" />} />
+          <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/dashboard" />} />
+          
+          {/* Protected Routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/bots" element={
+            <ProtectedRoute>
+              <BotsPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/bots/create" element={
+            <ProtectedRoute>
+              <BotsCreatePage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/bots/:id" element={
+            <ProtectedRoute>
+              <BotDetailsPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/pairing" element={
+            <ProtectedRoute>
+              <PairingPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/bots/:id/upload-creds" element={
+            <ProtectedRoute>
+              <UploadCredsPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/payment" element={
+            <ProtectedRoute>
+              <PaymentPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <SettingsPage logout={handleLogout} />
+            </ProtectedRoute>
+          } />
+          
+          {/* Admin Only Routes */}
+          <Route path="/admin" element={
+            <ProtectedRoute adminOnly>
+              <AdminPage />
+            </ProtectedRoute>
+          } />
+          
+          {/* 404 */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </main>
+      <Footer />
     </div>
   );
 }
@@ -170,7 +174,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <Router>
+        <AppContent />
+      </Router>
     </AuthProvider>
   );
 }
@@ -252,11 +258,13 @@ const notFoundStyles = {
 
 // Add CSS animations
 const styleSheet = document.styleSheets[0];
-styleSheet.insertRule(`
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-`, styleSheet.cssRules.length);
+if (styleSheet) {
+  styleSheet.insertRule(`
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  `, styleSheet.cssRules.length);
+}
 
 export default App;
