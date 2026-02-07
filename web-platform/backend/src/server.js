@@ -15,6 +15,7 @@ const path = require('path');
 const crypto = require('crypto');
 require('dotenv').config();
 
+app.set("trust proxy", 1);
 const app = express();
 
 // Create temp directory for PDF receipts
@@ -1787,3 +1788,4 @@ app.listen(PORT, () => {
     console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
     console.log(`🤖 Bot Runner URL: ${BOT_API_URL}`);
 });
+
