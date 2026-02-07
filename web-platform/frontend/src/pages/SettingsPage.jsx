@@ -1,7 +1,9 @@
 // web-platform/frontend/src/pages/SettingsPage.jsx
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
-function SettingsPage({ user, setUser }) {
+function SettingsPage({ logout }) {
   const [settings, setSettings] = useState({
     emailNotifications: true,
     whatsappNotifications: false,
@@ -10,10 +12,26 @@ function SettingsPage({ user, setUser }) {
     autoRecording: false
   });
 
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
-    window.location.href = '/';
+    logout();
+    navigate('/');
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      // Call backend to delete account
+      await axios.delete('/api/account');
+      handleLogout();
+    } catch (error) {
+      alert('Failed to delete account');
+    }
   };
 
   const handleToggle = (key) => {
@@ -40,7 +58,9 @@ function SettingsPage({ user, setUser }) {
           </div>
           <div style={styles.infoRow}>
             <span style={styles.label}>Joined</span>
-            <span style={styles.value}>Recently</span>
+            <span style={styles.value}>
+              {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Recently'}
+            </span>
           </div>
         </div>
       </div>
@@ -65,7 +85,10 @@ function SettingsPage({ user, setUser }) {
                   ...(value ? styles.toggleOn : styles.toggleOff)
                 }}
               >
-                <div style={styles.toggleCircle}></div>
+                <div style={{
+                  ...styles.toggleCircle,
+                  left: value ? 'calc(100% - 27px)' : '3px'
+                }}></div>
               </button>
             </div>
           ))}
@@ -78,7 +101,10 @@ function SettingsPage({ user, setUser }) {
           <button style={styles.dangerButton} onClick={handleLogout}>
             Logout
           </button>
-          <button style={{...styles.dangerButton, ...styles.deleteButton}}>
+          <button 
+            style={{...styles.dangerButton, ...styles.deleteButton}}
+            onClick={handleDeleteAccount}
+          >
             Delete Account
           </button>
         </div>
