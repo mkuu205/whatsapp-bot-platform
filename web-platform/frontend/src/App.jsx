@@ -20,8 +20,8 @@ import UploadCredsPage from './pages/UploadCredsPage';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 
-// API setup
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+// API setup - IMPORTANT: Remove /api from base URL since backend already has it
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 axios.defaults.baseURL = API_URL;
 axios.interceptors.request.use(config => {
