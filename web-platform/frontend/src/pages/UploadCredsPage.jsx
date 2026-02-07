@@ -53,7 +53,7 @@ function UploadCredsPage() {
       // Validate JSON
       const parsedJson = JSON.parse(jsonContent);
       
-      const response = await axios.post(`/bots/${id}/upload-creds`, {
+      const response = await axios.post(`/api/bots/${id}/upload-creds`, {
         credentials: parsedJson
       });
 
@@ -63,7 +63,7 @@ function UploadCredsPage() {
         // Auto-deploy after 2 seconds
         setTimeout(async () => {
           try {
-            const deployResponse = await axios.post(`/bots/${id}/deploy`);
+            const deployResponse = await axios.post(`/api/bots/${id}/deploy`);
             if (deployResponse.data.success) {
               alert('Bot deployment started! It will be ready in a few moments.');
               navigate(`/bots/${id}`);
@@ -441,3 +441,4 @@ const styles = {
 };
 
 export default UploadCredsPage;
+
