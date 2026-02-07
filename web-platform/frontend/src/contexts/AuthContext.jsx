@@ -1,6 +1,6 @@
 // web-platform/frontend/src/contexts/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api/axios'; // Import our custom axios instance
 
 const AuthContext = createContext();
 
@@ -29,23 +29,22 @@ export const AuthProvider = ({ children }) => {
         return;
       }
       
-      // Set default Authorization header
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
       // Fetch REAL user from backend
-      const response = await axios.get('/api/auth/me');
+      const response = await api.get('/api/auth/me');
       
       if (response.data) {
         setUser(response.data);
       } else {
         // Clear invalid token
         localStorage.removeItem('access_token');
-        delete axios.defaults.headers.common['Authorization'];
       }
     } catch (error) {
       console.error('Auth check failed:', error);
-      localStorage.removeItem('access_token');
-      delete axios.defaults.headers.common['Authorization'];
+      
+      // If it's a 401 error, clear the token
+      if (error.response?.status === 401) {
+        localStorage.removeItem('access_token');
+      }
     } finally {
       setLoading(false);
     }
@@ -53,44 +52,58 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('/auth/login', {
+      console.log('Login attempt for:', email);
+      
+      const response = await api.post('/api/auth/login', {
         email,
         password
       });
       
+      console.log('Login response:', response.data);
+      
       const { token, user: userData } = response.data;
+      
+      if (!token) {
+        throw new Error('No token received from server');
+      }
       
       // Store token
       localStorage.setItem('access_token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       // Set user
       setUser(userData);
       
       return { success: true, user: userData };
     } catch (error) {
+      console.error('Login error details:', error.response?.data || error.message);
+      
       return { 
         success: false, 
-        error: error.response?.data?.error || 'Login failed' 
+        error: error.response?.data?.error || 'Login failed. Please try again.' 
       };
     }
   };
 
   const register = async (userData) => {
     try {
-      const response = await axios.post('/api/auth/register', userData);
+      const response = await api.post('/api/auth/register', userData);
       
       const { token, user: newUser } = response.data;
       
+      if (!token) {
+        throw new Error('No token received from server');
+      }
+      
       // Store token
       localStorage.setItem('access_token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       // Set user
       setUser(newUser);
       
       return { success: true, user: newUser };
     } catch (error) {
+      console.error('Registration error:', error.response?.data || error.message);
+      
       return { 
         success: false, 
         error: error.response?.data?.error || 'Registration failed' 
@@ -100,25 +113,27 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('access_token');
-    delete axios.defaults.headers.common['Authorization'];
     setUser(null);
-    // Don't use navigate here - let the component handle it
+    // Redirect to login page
+    window.location.href = '/login';
   };
 
   const updateUser = (updates) => {
     setUser(prev => ({ ...prev, ...updates }));
   };
 
+  const value = {
+    user,
+    loading,
+    login,
+    register,
+    logout,
+    updateUser,
+    checkAuth
+  };
+
   return (
-    <AuthContext.Provider value={{
-      user,
-      loading,
-      login,
-      register,
-      logout,
-      updateUser,
-      checkAuth
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
