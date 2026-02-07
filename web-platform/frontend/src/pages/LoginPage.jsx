@@ -22,10 +22,11 @@ function LoginPage() {
       if (result.success) {
         navigate('/dashboard');
       } else {
-        setError(result.error);
+        setError(result.error || 'Login failed');
       }
     } catch (err) {
       setError('Login failed. Please try again.');
+      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
@@ -83,12 +84,22 @@ function LoginPage() {
         </form>
 
         <div style={styles.divider}>
-          <span>OR</span>
+          <span style={styles.dividerLine}></span>
+          <span style={styles.dividerText}>OR</span>
+          <span style={styles.dividerLine}></span>
         </div>
 
         <Link to="/register" style={styles.registerLink}>
           Create new account
         </Link>
+
+        <div style={styles.footer}>
+          <p>Demo Credentials:</p>
+          <div style={styles.demoCreds}>
+            Email: test@example.com<br />
+            Password: password123
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -144,6 +155,12 @@ const styles = {
     border: '1px solid #d1d5db',
     borderRadius: '10px',
     fontSize: '16px',
+    transition: 'all 0.3s ease',
+  },
+  inputFocus: {
+    outline: 'none',
+    borderColor: '#6366f1',
+    boxShadow: '0 0 0 3px rgba(99, 102, 241, 0.1)',
   },
   forgotLink: {
     alignSelf: 'flex-end',
@@ -162,18 +179,31 @@ const styles = {
     fontWeight: '600',
     cursor: 'pointer',
     marginTop: '10px',
+    transition: 'all 0.3s ease',
+  },
+  buttonHover: {
+    transform: 'translateY(-2px)',
+    boxShadow: '0 10px 25px rgba(102, 126, 234, 0.3)',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+    cursor: 'not-allowed',
+    transform: 'none',
   },
   divider: {
     display: 'flex',
     alignItems: 'center',
-    gap: '15px',
     margin: '20px 0',
-    color: '#9ca3af',
   },
   dividerLine: {
     flex: 1,
     height: '1px',
     background: '#e5e7eb',
+  },
+  dividerText: {
+    padding: '0 15px',
+    color: '#9ca3af',
+    fontSize: '14px',
   },
   registerLink: {
     padding: '14px',
@@ -183,6 +213,26 @@ const styles = {
     border: '2px solid #6366f1',
     borderRadius: '10px',
     fontWeight: '600',
+    transition: 'all 0.3s ease',
+  },
+  registerLinkHover: {
+    background: 'rgba(99, 102, 241, 0.1)',
+  },
+  footer: {
+    marginTop: '30px',
+    paddingTop: '20px',
+    borderTop: '1px solid #e5e7eb',
+    textAlign: 'center',
+    color: '#6b7280',
+    fontSize: '14px',
+  },
+  demoCreds: {
+    background: '#f3f4f6',
+    padding: '10px',
+    borderRadius: '8px',
+    marginTop: '10px',
+    fontFamily: 'monospace',
+    fontSize: '13px',
   },
 };
 
